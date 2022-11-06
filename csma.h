@@ -38,8 +38,7 @@ void CsmaConfigNoAckMode(uint32_t seed, uint32_t slotLength, CsmaPacketLossRate 
 
 // CsmaReceiveOther 接收到其他帧
 // 接收到非发给本机的帧需要调用本函数
-// 接收时间.单位：us
-void CsmaReceiveOther(uint64_t time);
+void CsmaReceiveOther(void);
 
 // CsmaSendSuccess 发送成功
 // 有应答模式下发送成功后调用本函数
@@ -49,17 +48,19 @@ void CsmaSendSuccess(void);
 // 有应答模式下发送失败后调用本函数
 void CsmaSendFailure(void);
 
+// CsmaSendEnd 发送结束
+// 无应答模式下发送结束后调用本函数
+void CsmaSendEnd(void);
+
 // CsmaCalcNextSendTime 计算下次发送时间
-// timeNow是当前时间.单位:us
-uint64_t CsmaCalcNextSendTime(uint64_t timeNow);
+// 返回的下次发送时间单位:us
+uint64_t CsmaCalcNextSendTime(void);
 
 // CsmaGetNextSendTime 读取下次发送时间
 // 返回的下次发送时间单位:us
 uint64_t CsmaGetNextSendTime(void);
 
-// CsmaIsBusy csma模块是否忙碌
-// timeNow是当前时间.单位:us
-// 忙碌时不应该再次计算下次发送时间
-bool CsmaIsBusy(uint64_t timeNow);
+// CsmaIsAllowSend 是否允许发送
+bool CsmaIsAllowSend(void);
 
 #endif
