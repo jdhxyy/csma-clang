@@ -1,6 +1,10 @@
 // Copyright 2019-2022 The jdh99 Authors. All rights reserved.
 // 载波监听模块
 // Authors: jdh99 <jdh821@163.com>
+// 本模块调用方法:
+// 1.调用CsmaLock获取权限
+// 2.调用CsmaIsAllowSend等待发送
+// 3.发送完成调用CsmaUnlock解锁
 
 #ifndef CSMA_H
 #define CSMA_H
@@ -9,58 +13,37 @@
 #include <math.h>
 #include <stdint.h>
 
-// 不同丢包率级别下的最大监听时隙数
-#define CSMA_SLOT_NUM_HIGH_LOSS_RATE 10
-#define CSMA_SLOT_NUM_MIDDLE_LOSS_RATE 50
-#define CSMA_SLOT_NUM_LOW_LOSS_RATE 100
-
 // 监听到其他帧后静默时间.单位：时隙个数
-#define SLIENT_SLOT_NUM 6
+#define CSMA_SLIENT_SLOT_NUM 10
 
-// CsmaPacketLossRate 丢包率级别
-typedef enum
-{
-    CSMA_HIGH_PACKET_LOSS_RATE = 0,
-    CSMA_MIDDLE_PACKET_LOSS_RATE,
-    CSMA_LOW_PACKET_LOSS_RATE
-} CsmaPacketLossRate;
+// 锁定超时时间,超时自动解锁.单位:ms
+#define CSMA_LOCK_TIMEOUT 3000
 
-// CsmaConfigAckMode 设置有应答模式
+// 接收时间窗口.单位:us
+#define CSMA_RX_WINDOW 5000000
+
+// CsmaLoad 模块载入
 // seed: 随机数种子
-// slotLength: 时隙长度.单位: us
-void CsmaConfigAckMode(uint32_t seed, uint32_t slotLength);
+// slotLen: 时隙长度.单位: us
+bool CsmaLoad(uint32_t seed, uint32_t slotLen);
 
-// CsmaConfigNoAckMode 设置无应答模式
-// seed: 随机数种子
-// slotLength: 时隙长度.单位: us
-// lossRate: 期望的丢包率级别
-void CsmaConfigNoAckMode(uint32_t seed, uint32_t slotLength, CsmaPacketLossRate lossRate);
+// CsmaLock 锁定
+bool CsmaLock(void);
 
-// CsmaReceiveOther 接收到其他帧
-// 接收到非发给本机的帧需要调用本函数
-void CsmaReceiveOther(void);
-
-// CsmaSendSuccess 发送成功
-// 有应答模式下发送成功后调用本函数
-void CsmaSendSuccess(void);
-
-// CsmaSendFailure 发送失败
-// 有应答模式下发送失败后调用本函数
-void CsmaSendFailure(void);
-
-// CsmaSendEnd 发送结束
-// 无应答模式下发送结束后调用本函数
-void CsmaSendEnd(void);
-
-// CsmaCalcNextSendTime 计算下次发送时间
-// 返回的下次发送时间单位:us
-uint64_t CsmaCalcNextSendTime(void);
-
-// CsmaGetNextSendTime 读取下次发送时间
-// 返回的下次发送时间单位:us
-uint64_t CsmaGetNextSendTime(void);
-
-// CsmaIsAllowSend 是否允许发送
+// CsmaIsAllowSend 是否允许发送.获取到锁之后才能调用本函数
 bool CsmaIsAllowSend(void);
+
+// CsmaUnlock 解锁
+void CsmaUnlock(void);
+
+// CsmaReceive 接收到其他帧
+void CsmaReceive(void);
+
+// CsmaReceiveFail 接收失败
+// 如果发送的是有应答帧,接收失败可调用本函数
+void CsmaReceiveFail(void);
+
+// CsmaGetBusyRatio 读取忙碌度.忙碌度取值0-100
+int CsmaGetBusyRatio(void);
 
 #endif

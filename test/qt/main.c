@@ -9,10 +9,10 @@ static uint64_t gNow = 0;
 
 static uint64_t getTime(void);
 static void setTime(uint64_t time);
+static void rxFrame(int num);
 
 static void test_case0(void);
 static void test_case1(void);
-static void test_case2(void);
 
 int main(void) {
     ScunitLoad(printf);
@@ -21,8 +21,7 @@ int main(void) {
     TZTimeLoad(getTime);
 
     //test_case0();
-    //test_case1();
-    test_case2();
+    test_case1();
 
     return 0;
 }
@@ -114,12 +113,13 @@ static void test_case0(void)
 
 static void test_case1(void)
 {
-    printf("-------------------->case1:无应答模式测试开始\n");
+    CsmaLoad(0x12, 1250);
 
-    printf("---------->CSMA_HIGH_PACKET_LOSS_RATE max: 12.5\n");
-    CsmaConfigNoAckMode(0x12, 1250, CSMA_HIGH_PACKET_LOSS_RATE);
-    int nextTime = 0;
-    int lastTime = 0;
+    printf("-------------------->case1:测试开始\n");
+
+    printf("-------------------->信道干净测试\n");
+    int nextTime = CsmaGetNextSendTime();
+    int lastTime = nextTime;
     for (int i = 0; i < 100; i++)
     {
         nextTime = CsmaGetNextSendTime();
@@ -130,60 +130,12 @@ static void test_case1(void)
     }
     printf("\n");
 
-    printf("---------->CSMA_MIDDLE_PACKET_LOSS_RATE max: 62.5\n");
-    CsmaConfigNoAckMode(0x12, 1250, CSMA_MIDDLE_PACKET_LOSS_RATE);
-    for (int i = 0; i < 100; i++)
-    {
-        nextTime = CsmaGetNextSendTime();
-        printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
-        lastTime = nextTime;
-        setTime(nextTime);
-        CsmaSendEnd();
-    }
-    printf("\n");
-
-    printf("---------->CSMA_LOW_PACKET_LOSS_RATE max: 125\n");
-    CsmaConfigNoAckMode(0x12, 1250, CSMA_LOW_PACKET_LOSS_RATE);
-    for (int i = 0; i < 100; i++)
-    {
-        nextTime = CsmaGetNextSendTime();
-        printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
-        lastTime = nextTime;
-        setTime(nextTime);
-        CsmaSendEnd();
-    }
-    printf("\n");
-
-    printf("---------->高丢包率仿真实场景测试\n");
-    CsmaConfigNoAckMode(0x12, 1250, CSMA_HIGH_PACKET_LOSS_RATE);
-    for (int i = 1; i < 10; i++)
-    {
-        printf("接收到其他帧\n");
-        CsmaReceiveOther();
-        nextTime = CsmaGetNextSendTime();
-        printf("%d.%03d-%d\n", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
-        lastTime = nextTime;
-        setTime(nextTime);
-    }
-
-    printf("-------------------->case1:无应答模式测试结束\n");
-}
-
-static void test_case2(void)
-{
-    printf("-------------------->case1:应答模式测试开始\n");
-
-    CsmaConfigAckMode(0x12, 1250);
-    int nextTime = 0;
-    int lastTime = 0;
+    printf("-------------------->信道10%忙碌测试\n");
+    rxFrame(80);
     nextTime = CsmaGetNextSendTime();
-    printf("send time: %d\n", nextTime);
-    setTime(nextTime);
-
-    printf("---------->CsmaSendSuccess max: 1250\n");
+    lastTime = nextTime;
     for (int i = 0; i < 100; i++)
     {
-        CsmaSendSuccess();
         nextTime = CsmaGetNextSendTime();
         printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
         lastTime = nextTime;
@@ -192,10 +144,13 @@ static void test_case2(void)
     }
     printf("\n");
 
-    printf("---------->CsmaSendFailure\n");
+    printf("-------------------->信道20%忙碌测试\n");
+    setTime(nextTime + 10000);
+    rxFrame(160);
+    nextTime = CsmaGetNextSendTime();
+    lastTime = nextTime;
     for (int i = 0; i < 100; i++)
     {
-        CsmaSendFailure();
         nextTime = CsmaGetNextSendTime();
         printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
         lastTime = nextTime;
@@ -204,32 +159,54 @@ static void test_case2(void)
     }
     printf("\n");
 
-    printf("---------->rand test\n");
+    printf("-------------------->信道30%忙碌测试\n");
+    setTime(nextTime + 10000);
+    rxFrame(240);
+    nextTime = CsmaGetNextSendTime();
+    lastTime = nextTime;
     for (int i = 0; i < 100; i++)
     {
-        if (TZRandomGetRand(1, 100) % 2 == 0)
-        {
-            CsmaSendSuccess();
-            CsmaSendSuccess();
-            nextTime = CsmaGetNextSendTime();
-            printf("s:%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
-            lastTime = nextTime;
-            setTime(nextTime);
-            CsmaSendEnd();
-        }
-        else
-        {
-            CsmaSendFailure();
-            nextTime = CsmaGetNextSendTime();
-            printf("f:%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
-            lastTime = nextTime;
-            setTime(nextTime);
-            CsmaSendEnd();
-        }
+        nextTime = CsmaGetNextSendTime();
+        printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
+        lastTime = nextTime;
+        setTime(nextTime);
+        CsmaSendEnd();
     }
     printf("\n");
 
-    printf("-------------------->case1:应答模式测试结束\n");
+    printf("-------------------->信道50%忙碌测试\n");
+    rxFrame(400);
+    nextTime = CsmaGetNextSendTime();
+    lastTime = nextTime;
+    for (int i = 0; i < 100; i++)
+    {
+        nextTime = CsmaGetNextSendTime();
+        printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
+        lastTime = nextTime;
+        setTime(nextTime);
+        CsmaSendEnd();
+    }
+    printf("\n");
+
+    printf("-------------------->信道100%忙碌测试\n");
+    rxFrame(1000);
+    nextTime = CsmaGetNextSendTime();
+    lastTime = nextTime;
+    for (int i = 0; i < 100; i++)
+    {
+        nextTime = CsmaGetNextSendTime();
+        printf("%d.%03d-%d ", nextTime / 1000, nextTime % 1000, (nextTime - lastTime) / 1000);
+        lastTime = nextTime;
+        setTime(nextTime);
+        CsmaSendEnd();
+    }
+    printf("\n");
+
+    printf("-------------------->case1:测试结束\n");
 }
 
-
+static void rxFrame(int num) {
+    for (int i = 0; i < num; i++) {
+        CsmaReceiveOther();
+    }
+}
