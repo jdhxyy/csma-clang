@@ -35,7 +35,7 @@ static tRxWindow gNewWindow = {0};
 
 // 窗口中存放的是避让时隙,对应的是忙碌度,从0%开始
 #define WINDOW_LEN 31
-static int gWindow[WINDOW_LEN] = {2, 
+static uint16_t gWindow[WINDOW_LEN] = {2, 
     4,   9,   14,  19,  25,  32,  39,  47,  56,  67,
     78,  92,  106, 123, 142, 163, 186, 211, 239, 270,
     303, 340, 379, 422, 469, 519, 572, 630, 692, 758
@@ -131,7 +131,7 @@ static uint32_t calcWindowSlotNum(uint64_t now) {
         b = WINDOW_LEN - 1;
     }
     gBusyRatio = b;
-    return gWindow[b];
+    return (uint32_t)gWindow[b];
 }
 
 // CsmaIsAllowSend 是否允许发送.获取到锁之后才能调用本函数
