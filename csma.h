@@ -17,7 +17,7 @@
 #define CSMA_SLIENT_SLOT_NUM 10
 
 // 锁定超时时间,超时自动解锁.单位:ms
-#define CSMA_LOCK_TIMEOUT 3000
+#define CSMA_LOCK_TIMEOUT 2000
 
 // 接收时间窗口.单位:us
 #define CSMA_RX_WINDOW 5000000

@@ -61,7 +61,7 @@ static uint32_t calcWindowSlotNum(uint64_t now);
 // seed: 随机数种子
 // slotLen: 时隙长度.单位: us
 bool CsmaLoad(uint32_t seed, uint32_t slotLen) {
-    gNextSendTime = slotLen * CSMA_SLIENT_SLOT_NUM;
+    gSlientTime = slotLen * CSMA_SLIENT_SLOT_NUM;
     TZRandomSetSeed((int)seed);
     gSlotLen = slotLen;
     gSlotNumSecond = 1000000 / slotLen;
