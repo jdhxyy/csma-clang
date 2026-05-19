@@ -13,19 +13,36 @@
 #include <math.h>
 #include <stdint.h>
 
-// 监听到其他帧后静默时间.单位：时隙个数
-#define CSMA_SLIENT_SLOT_NUM 10
+// 退避时隙窗口长度
+#define CSMA_BACKOFF_WINDOW_LEN 31
 
-// 锁定超时时间,超时自动解锁.单位:ms
-#define CSMA_LOCK_TIMEOUT 2000
+// BackoffWindow中存放的是避让时隙,对应的是忙碌度,从0%~30%,共31个值
+// BackoffWindow中是对应忙碌度的避让时隙,以下是1250us时隙下的避让时隙示例:
+// BackoffWindow[CSMA_BACKOFF_WINDOW_LEN] = {2, 
+//     4,   9,   14,  19,  25,  32,  39,  47,  56,  67,
+//     78,  92,  106, 123, 142, 163, 186, 211, 239, 270,
+//     303, 340, 379, 422, 469, 519, 572, 630, 692, 758
+// };
 
-// 接收时间窗口.单位:us
-#define CSMA_RX_WINDOW 5000000
+// CsmaParam 载入参数
+typedef struct {
+    // 随机数种子
+    uint32_t Seed;
+    // 时隙长度.单位: us
+    uint32_t SlotLen;
+    // 监听到其他帧后静默时间.单位：时隙个数
+    uint32_t SlientSlotNum;
+    // 锁定超时时间,超时自动解锁.单位:ms
+    uint32_t LockTimeout;
+    // 接收时间窗口.单位:us
+    uint32_t RxWindow;
+    // 退避时隙窗口.对应忙碌度0-30%,共31个值
+    uint16_t BackoffWindow[CSMA_BACKOFF_WINDOW_LEN];
+} CsmaParam;
 
 // CsmaLoad 模块载入
-// seed: 随机数种子
-// slotLen: 时隙长度.单位: us
-bool CsmaLoad(uint32_t seed, uint32_t slotLen);
+// param: 参数结构体
+bool CsmaLoad(CsmaParam *param);
 
 // CsmaLock 锁定
 bool CsmaLock(void);

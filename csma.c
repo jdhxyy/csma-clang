@@ -24,7 +24,9 @@ typedef enum {
     S_SEND
 } tState;
 
-static uint32_t gSlotLen = 0;
+// 参数
+static CsmaParam gParam = {0};
+
 static uint64_t gTimeRxOther = 0;
 static int gSlotNumSecond = 0;
 static tState gState = S_FREE;
@@ -32,14 +34,6 @@ static tState gState = S_FREE;
 // 接收窗口
 static tRxWindow gOldWindow = {0};
 static tRxWindow gNewWindow = {0};
-
-// 窗口中存放的是避让时隙,对应的是忙碌度,从0%开始
-#define WINDOW_LEN 31
-static uint16_t gWindow[WINDOW_LEN] = {2, 
-    4,   9,   14,  19,  25,  32,  39,  47,  56,  67,
-    78,  92,  106, 123, 142, 163, 186, 211, 239, 270,
-    303, 340, 379, 422, 469, 519, 572, 630, 692, 758
-};
 
 // 忙碌度
 static int gBusyRatio = 0;
@@ -58,13 +52,16 @@ static void calcNextSendTime(uint64_t now);
 static uint32_t calcWindowSlotNum(uint64_t now);
 
 // CsmaLoad 模块载入
-// seed: 随机数种子
-// slotLen: 时隙长度.单位: us
-bool CsmaLoad(uint32_t seed, uint32_t slotLen) {
-    gSlientTime = slotLen * CSMA_SLIENT_SLOT_NUM;
-    TZRandomSetSeed((int)seed);
-    gSlotLen = slotLen;
-    gSlotNumSecond = 1000000 / slotLen;
+// param: 参数结构体
+bool CsmaLoad(CsmaParam *param) {
+    if (param == NULL) {
+        return false;
+    }
+
+    gParam = *param;
+    gSlientTime = gParam.SlotLen * gParam.SlientSlotNum;
+    TZRandomSetSeed((int)gParam.Seed);
+    gSlotNumSecond = 1000000 / gParam.SlotLen;
 
     if (AsyncStart(task, ASYNC_NO_WAIT) == false) {
         return false;
@@ -83,7 +80,7 @@ static int task(void) {
 
     // 超时自动解锁
     time = TZTimeGet();
-    if (time - gLockTime > CSMA_LOCK_TIMEOUT * 1000) {
+    if (time - gLockTime > gParam.LockTimeout * 1000) {
         gState = S_FREE;
         PT_EXIT(&pt);
     }
@@ -118,7 +115,7 @@ static void calcNextSendTime(uint64_t now) {
     }
 
     uint32_t slotNum = calcWindowSlotNum(now);
-    gNextSendTime = now + TZRandomGetRand(base, base + slotNum * gSlotLen);
+    gNextSendTime = now + TZRandomGetRand(base, base + slotNum * gParam.SlotLen);
 }
 
 static uint32_t calcWindowSlotNum(uint64_t now) {
@@ -127,11 +124,11 @@ static uint32_t calcWindowSlotNum(uint64_t now) {
     uint32_t n = gOldWindow.num + gNewWindow.num;
     uint32_t b = 100000 / gSlotNumSecond * n / w;
 
-    if (b >= WINDOW_LEN) {
-        b = WINDOW_LEN - 1;
+    if (b >= CSMA_BACKOFF_WINDOW_LEN) {
+        b = CSMA_BACKOFF_WINDOW_LEN - 1;
     }
     gBusyRatio = b;
-    return (uint32_t)gWindow[b];
+    return (uint32_t)gParam.BackoffWindow[b];
 }
 
 // CsmaIsAllowSend 是否允许发送.获取到锁之后才能调用本函数
@@ -165,7 +162,7 @@ void CsmaUnlock(void) {
 // CsmaReceive 接收到其他帧
 void CsmaReceive(void) {
     uint64_t now = TZTimeGet();
-    if (now - gNewWindow.startTime > CSMA_RX_WINDOW) {
+    if (now - gNewWindow.startTime > gParam.RxWindow) {
         gOldWindow = gNewWindow;
         gNewWindow.startTime = now;
         gNewWindow.num = 0;
@@ -189,7 +186,7 @@ int CsmaGetBusyRatio(void) {
     static int window = 0;
 
     if (window == 0) {
-        window = CSMA_RX_WINDOW * 2;
+        window = gParam.RxWindow * 2;
     }
 
     uint64_t now = TZTimeGet();
