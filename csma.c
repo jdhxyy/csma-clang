@@ -6,7 +6,7 @@
 #include "csma.h"
 #include "tzrandom.h"
 #include "tztime.h"
-#include "async.h"
+#include "pt.h"
 
 #pragma pack(1)
 
@@ -46,8 +46,6 @@ static uint64_t gNextSendTime = 0;
 // 静默时间.单位:us
 static uint64_t gSlientTime = 0;
 
-static int task(void);
-
 static void calcNextSendTime(uint64_t now);
 static uint32_t calcWindowSlotNum(uint64_t now);
 
@@ -63,14 +61,11 @@ bool CsmaLoad(CsmaParam *param) {
     TZRandomSetSeed((int)gParam.Seed);
     gSlotNumSecond = 1000000 / gParam.SlotLen;
 
-    if (AsyncStart(task, ASYNC_NO_WAIT) == false) {
-        return false;
-    }
-
     return true;
 }
 
-static int task(void) {
+// CsmaRun 模块运行
+int CsmaRun(void) {
     static struct pt pt = {0};
     static uint64_t time = 0;
 

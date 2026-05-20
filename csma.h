@@ -44,6 +44,9 @@ typedef struct {
 // param: 参数结构体
 bool CsmaLoad(CsmaParam *param);
 
+// CsmaRun 模块运行
+int CsmaRun(void);
+
 // CsmaLock 锁定
 bool CsmaLock(void);
 
